@@ -1,0 +1,12 @@
+---- Version 0.1 from 2011-04-22 ----
+ * Changed default config to serve static files directly 
+   and dynamic files via apache proxy on port 127.0.0.1:81
+   (can be changed in settings)
+ * Added support for domain alias
+ * Added custom nginx config in settings
+ * Added bandwith monitoring (included to web traffic)
+ * Fixed some bugs
+
+---- Version 0.0.2 from 2010-08-30 ----
+ * Do the fork of https://github.com/vixh/nginx-webmin
+
