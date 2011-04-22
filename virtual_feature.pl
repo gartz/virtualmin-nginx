@@ -279,12 +279,13 @@ sub feature_setup
   #TODO Determine subdomain and dont put rewrite ^/(.*) http://www.$d->{'dom'} permanent;
 
   if($config{'nginx_conf_tpl'} eq "") {
-    open(CONFFILE, "<" . "/usr/share/webmin/nginx-webmin/nginx-default.conf");
-
+    open(CONFFILE, "<" . "../virtualmin-nginx/nginx-default.conf");
+    &$virtual_server::first_print("Using default config file nginx-default.conf");
     @conf=<CONFFILE>;
     close(CONFFILE);
     $conf=join("",@conf);
   } else {
+    &$virtual_server::first_print("Using custom config file");
     $conf=$config{'nginx_conf_tpl'};
   }
 
@@ -399,9 +400,26 @@ sub reload_nginx
   {
     $nginx_pid = '/var/run/nginx.pid';
   }
-  #TODO test nginx conf = nginx -t
-  my $pid = `cat $nginx_pid`;
-  `kill -HUP $pid`;
+  if($config{'nginx_path'} eq "")
+  {
+    $nginx_path = '/usr/sbin/nginx';
+  }
+  
+  &$virtual_server::first_print("Testing new nginx config");
+  $out=`$nginx_path -t 2>&1`;
+  $result_num=$?;
+  
+  if($? == 0) {
+    
+    if($out =~ /\[(warn|emerg)]/g) {
+      &$virtual_server::first_print($out);
+    }
+    &$virtual_server::first_print("Reloading nginx");
+    my $pid = `cat $nginx_pid`;
+    `kill -HUP $pid`;
+  } else {
+    &$virtual_server::second_print("..not restarting nginx, failed to test nginx config - result of '$nginx_path -t' is $?, output: $out");
+  }
 }
 
 sub fix_perm

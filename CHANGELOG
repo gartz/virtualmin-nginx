@@ -1,3 +1,7 @@
+---- Version 0.2 from 2011-04-22 ----
+ * Fixed bug with empty default config
+ * Added testing nginx config before reloading
+
 ---- Version 0.1 from 2011-04-22 ----
  * Changed default config to serve static files directly 
    and dynamic files via apache proxy on port 127.0.0.1:81

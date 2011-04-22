@@ -2,6 +2,7 @@ conf_dir=Config directory,3,Default (/etc/nginx/)
 sites_available_dir=sites-available subdirectory,3,Default (sites-available/)
 sites_enabled_dir=sites-enabled subdirectory,3,Default (sites-enabled/)
 nginx_pid=pid file,3,Default (/var/run/nginx.pid)
+nginx_path=Full path to the nginx executable,0
 nginx_ip=nginx ip-address,3,Default (Same as virtualserver IP)
 nginx_port=nginx port to listen on,3,Default (80)
 proxy_ip=Proxy IP-address,3,Default (127.0.0.1)
