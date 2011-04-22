@@ -1,6 +1,7 @@
 Plugin for Virtualmin/Webmin.
-Enable add/remove, disable sites to Nginx config
+Enable add/remove, disable sites in Nginx config
+Author: Alexey Murz Korepov <murznn@gmail.com>
 
-INSTALL
-1. Copy to webmin directory(usual /usr/share/webmin)
-2. Goto virtualmin -> Features and Plugins -> Nginx Configure
+This is the fork of nginx-webmin plugin from https://github.com/vixh/nginx-webmin with adding new features.
+
+More info and install howto is into README file

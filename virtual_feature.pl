@@ -1,6 +1,9 @@
 do 'virtualmin-nginx-lib.pl';
 
 use File::Copy;
+use Data::Dumper;
+use Date::Parse;
+
 our ($conf_dir, $sites_avaliable_dir, $sites_enabled_dir, $log_dir);
 
 #TODO if $conf_dir, $sites_avaliable_dir, $sites_enabled_dir come from user put trail slash
@@ -35,7 +38,42 @@ sub feature_backup
 
 sub feature_bandwidth
 {
+  my ($d, $start, $bwhash) = @_;
+
+  $conffile="$conf_dir$sites_available_dir$d->{'dom'}.conf";
   
+  open(FILE,$conffile);
+
+  while($line=<FILE>) {
+    if($line =~ /^[^#]*access_log\s([^;]+)[\s;]/) {
+      $file = $1;
+      break;
+    }
+  }
+  if(!$file) { print STDERR "nginx: can't find log file for domain $d->{'dom'}"; }
+  open(LOG,$file);
+
+  while($line=<LOG>) {
+    @line_spl = split(/ /,$line);
+  
+    $line =~ m/\[([^\]]+)\]/;
+    $date = $1;
+  
+    $time=str2time($date);
+  
+    $bwtime = int($time/86400);
+    
+    $line =~ m/(\d+) "[\d\.\-]+"/;
+    $in = $1;
+    
+    $out = $line_spl[10];
+    if($time>$start) {
+      $bwhash->{'web_'.$bwtime} += ($in+$out);
+      $bwhash->{'nginx_'.$bwtime} += ($in+$out);
+    }
+  }
+
+  return $time;
 }
 
 sub feature_check
@@ -93,11 +131,22 @@ sub feature_clash
 
 sub feature_delete
 {
+  if($d->{'alias'}>0) 
+  {
+    &$virtual_server::first_print("Nginx alias mode - nothing to do");
+    
+    &$virtual_server::second_print(".. done");
+    
+    return;
+  }
+  
   my ($d) = @_;
   &$virtual_server::first_print("Deleting Nginx site ..");
   
   unlink($conf_dir . $sites_enabled_dir . $d->{'dom'} . ".conf");
   unlink($conf_dir . $sites_available_dir . $d->{'dom'} . ".conf");
+  
+  reload_nginx();
   
   &$virtual_server::second_print(".. done");
   
@@ -156,9 +205,43 @@ sub feature_losing
 
 sub feature_modify
 {
+  
+  &$virtual_server::first_print("modifying Nginx site ..");
   my ($d, $oldd) = @_;
-  if ($d->{'dom'} ne $oldd->{'dom'}) {
+  
+  if ($d->{'dom'} ne $oldd->{'dom'} || $d->{'home'} ne $oldd->{'home'}) {
+  
+    if($config{'log_dir'} eq "")
+    {
+      $log_dir = "$d->{'home'}/logs/";
+      $old_log_dir = "$oldd->{'home'}/logs/";
+    }
+    &$virtual_server::first_print("renaming files from $oldd->{'dom'} to $d->{'dom'}");
+    
+    open(CONFFILE, "<" . $conf_dir . $sites_available_dir . $oldd->{'dom'} . ".conf");
+    @conf=<CONFFILE>;
+    close(CONFFILE);
+  
+    $conf=join("",@conf);
+  
+    $conf =~ s/(server_name.*\s)$oldd->{'dom'}/$1$d->{'dom'}/gi;
+    $conf =~ s/(server_name.*\s)www\.$oldd->{'dom'}/$1www.$d->{'dom'}/gi;
+
+    $conf =~ s/(access_log\s+)$old_log_dir$oldd->{'dom'}\.access\.log/$1$log_dir$d->{'dom'}\.access\.log/gi;
+    $conf =~ s/(error_log\s+)$old_log_dir$oldd->{'dom'}\.error\.log/$1$log_dir$d->{'dom'}\.error\.log/gi;
+    
+    open(CONFFILE, ">" . $conf_dir . $sites_available_dir . $oldd->{'dom'} . ".conf");
+    print(CONFFILE $conf);
+    close(CONFFILE);
+    
+    unlink($conf_dir . $sites_enabled_dir . $oldd->{'dom'} . ".conf");
+    rename($conf_dir . $sites_available_dir . $oldd->{'dom'} . ".conf", $conf_dir . $sites_available_dir . $d->{'dom'} . ".conf");
+    symlink($conf_dir . $sites_available_dir . $d->{'dom'} . ".conf", $conf_dir . $sites_enabled_dir . $d->{'dom'} . ".conf");
+  
+    reload_nginx();
   }
+  
+  &$virtual_server::second_print(".. done");
 }
 
 sub feature_name
@@ -183,44 +266,41 @@ sub feature_setup
     $log_dir = "$d->{'home'}/logs/";
   }
   
+  if($d->{'alias'}>0) 
+  {
+    &$virtual_server::first_print("feature_setup - Nginx alias mode - exiting");
+    
+    return;
+  }
+  
+  
   open($file, ">" . $conf_dir . $sites_available_dir . $d->{'dom'} . ".conf");
   #TODO in config.info add nginx config template with default value conf_tmpl=nginx config template,9,server{ listen $d->{'ip'}:80;} or get it from nginx_conf.tpl and parse
   #TODO Determine subdomain and dont put rewrite ^/(.*) http://www.$d->{'dom'} permanent;
-  my $conf = <<CONFIG;
-  #server {
-  #  listen $d->{'ip'}:80;
-  #  server_name  $d->{'dom'};
-  #  rewrite ^/(.*) http://www.$d->{'dom'} permanent;
-  #}
-  server {
-    listen $d->{'ip'}:80;
-    server_name $d->{'dom'} www.$d->{'dom'};
-    
-    access_log $log_dir$d->{'dom'}.access.log;
-    error_log $log_dir$d->{'dom'}.error.log;
-  
-    root $d->{'home'}/public_html/;
-    index index.php index.html index.htm;
-    
-    if (!-e \$request_filename) {
-      rewrite ^/(.*)\$ /index.php?q=\$1 last;
-    }
-    
-    # serve static files directly
-    location ~* ^.+.(jpg|jpeg|gif|css|png|js|ico)\$ {
-      access_log        off;
-      expires           30d;
-    }
-    
-    location ~ \.php\$ {
-      fastcgi_pass 127.0.0.1:9000;
-      fastcgi_index index.php;
-      fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
-      include fastcgi_params;
-    }
 
+  if($config{'nginx_conf_tpl'} eq "") {
+    open(CONFFILE, "<" . "/usr/share/webmin/nginx-webmin/nginx-default.conf");
+
+    @conf=<CONFFILE>;
+    close(CONFFILE);
+    $conf=join("",@conf);
+  } else {
+    $conf=$config{'nginx_conf_tpl'};
   }
-CONFIG
+
+  $conf_v_nginx_ip = $config{'nginx_ip'} ? $config{'nginx_ip'} : $d->{'ip'};
+  $conf_v_nginx_port = $config{'nginx_port'} ? $config{'nginx_port'} : '80';
+  $conf_v_proxy_ip = $config{'proxy_ip'} ? $config{'proxy_ip'} : '127.0.0.1';
+  $conf_v_proxy_port = $config{'proxy_port'} ? $config{'proxy_port'} : '81';
+
+  $conf =~ s/\t/\n/g;
+
+  $conf =~ s/\$\{DOM\}/$d->{'dom'}/g;
+  $conf =~ s/\$\{IP\}/$conf_v_nginx_ip/g;
+  $conf =~ s/\$\{PORT\}/$conf_v_nginx_port/g;
+  $conf =~ s/\$\{PROXY_IP\}/$conf_v_proxy_ip/g;
+  $conf =~ s/\$\{PROXY_PORT\}/$conf_v_proxy_port/g;
+  $conf =~ s/\$\{HOME\}/$d->{'home'}/g;
   
   print($file $conf);
   
@@ -229,11 +309,74 @@ CONFIG
   symlink($conf_dir . $sites_available_dir . $d->{'dom'} . ".conf", $conf_dir . $sites_enabled_dir . $d->{'dom'} . ".conf");
   
   reload_nginx();
-  fix_perm("$d->{'home'}/public_html/");
   
   &$virtual_server::second_print(".. done");
-  
 }
+
+# feature_setup_alias(&domain, &alias)
+# Called when an alias of this domain is created, to perform any required
+# configuration changes. Only useful when the plugin itself does not implement
+# an alias feature.
+sub feature_setup_alias
+{
+  local ($d, $alias) = @_;
+  &$virtual_server::first_print("Setting up Nginx alias site ..");
+  
+  open(CONFFILE, "<" . $conf_dir . $sites_available_dir . $d->{'dom'} . ".conf");
+  @conf=<CONFFILE>;
+  close(CONFFILE);
+  
+  $conf=join("",@conf);
+  
+  $conf =~ s/(server_name\s.*$d->{'dom'} www\.$d->{'dom'})/$1 $alias->{'dom'} www\.$alias->{'dom'}/gi;
+
+  open(CONFFILE, ">" . $conf_dir . $sites_available_dir . $d->{'dom'} . ".conf");
+  print(CONFFILE $conf);
+  close(CONFFILE);
+  
+  reload_nginx();
+  
+  &$virtual_server::second_print(".. done");
+}
+
+# feature_delete_alias(&domain, &alias)
+# Called when an alias of this domain is deleted, to perform any required
+# configuration changes. Only useful when the plugin itself does not implement
+# an alias feature.
+sub feature_delete_alias
+{
+  local ($d, $alias) = @_;
+  &$virtual_server::first_print("Deleting Nginx alias site ..");
+
+  open(CONFFILE, "<" . $conf_dir . $sites_available_dir . $d->{'dom'} . ".conf");
+  @conf=<CONFFILE>;
+  close(CONFFILE);
+  
+  $conf=join("",@conf);
+  
+  $conf =~ s/(server_name\s.*)$alias->{'dom'}/$1/gi;
+  $conf =~ s/(server_name\s.*)www\.$alias->{'dom'}/$1/gi;
+
+  open(CONFFILE, ">" . $conf_dir . $sites_available_dir . $d->{'dom'} . ".conf");
+  print(CONFFILE $conf);
+  close(CONFFILE);
+  
+  reload_nginx();
+  
+  &$virtual_server::second_print(".. done");
+
+
+}
+
+# feature_modify_alias(&domain, &alias, &old-alias)
+# Called when an alias of this domain is deleted, to perform any required
+# configuration changes. Only useful when the plugin itself does not implement
+# an alias feature.
+sub feature_modify_alias
+{
+  &$virtual_server::first_print("Modifying Nginx alias site ..");
+}
+
 
 sub feature_suitable
 {
