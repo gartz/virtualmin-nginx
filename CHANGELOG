@@ -1,3 +1,6 @@
+---- Version 0.2.1 from 2011-05-17 ----
+ * Fixed bug with counting bandwith in aliases
+
 ---- Version 0.2 from 2011-04-22 ----
  * Fixed bug with empty default config
  * Added testing nginx config before reloading

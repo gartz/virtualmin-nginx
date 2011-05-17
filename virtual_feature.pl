@@ -40,6 +40,10 @@ sub feature_bandwidth
 {
   my ($d, $start, $bwhash) = @_;
 
+  if($d->{'alias'} gt 0) {
+    return; # return if here is alias of domain
+  }
+
   $conffile="$conf_dir$sites_available_dir$d->{'dom'}.conf";
   
   open(FILE,$conffile);
@@ -50,7 +54,10 @@ sub feature_bandwidth
       break;
     }
   }
-  if(!$file) { print STDERR "nginx: can't find log file for domain $d->{'dom'}"; }
+  if(!$file) {
+    print STDERR "nginx: can't find log file for domain $d->{'dom'} file $conffile";
+    #print Dumper($d);
+  }
   open(LOG,$file);
 
   while($line=<LOG>) {
