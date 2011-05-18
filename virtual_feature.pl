@@ -44,6 +44,11 @@ sub feature_bandwidth
     return; # return if here is alias of domain
   }
 
+  local $tmpl = &virtual_server::get_template($_[0]->{'template'});
+  if(!$tmpl->{'virtualmin-nginx_enable'}) {
+    return; # return if nginx for this template disabled
+  }
+  
   $conffile="$conf_dir$sites_available_dir$d->{'dom'}.conf";
   
   open(FILE,$conffile);
@@ -56,7 +61,7 @@ sub feature_bandwidth
   }
   if(!$file) {
     print STDERR "nginx: can't find log file for domain $d->{'dom'} file $conffile";
-    #print Dumper($d);
+    print Dumper($d);
   }
   open(LOG,$file);
 
@@ -167,6 +172,11 @@ sub feature_depends
 sub feature_disable
 {
   my ($d) = @_;
+  local $tmpl = &virtual_server::get_template($_[0]->{'template'});
+#   if(!$tmpl->{'virtualmin-nginx_enable'}) {
+#     return; # return if nginx for this template disabled
+#   }
+  
   &$virtual_server::first_print("Disabling Nginx website ..");
   unlink($conf_dir . $sites_enabled_dir . $d->{'dom'} . ".conf");
   reload_nginx();
@@ -180,6 +190,10 @@ sub feature_disname
 
 sub feature_enable
 {
+  local $tmpl = &virtual_server::get_template($_[0]->{'template'});
+  if(!$tmpl->{'virtualmin-nginx_enable'}) {
+    return; # return if nginx for this template disabled
+  }
   
   my ($d) = @_;
   &$virtual_server::first_print("Re-enabling Nginx website ..");
@@ -215,15 +229,39 @@ sub feature_modify
   
   &$virtual_server::first_print("modifying Nginx site ..");
   my ($d, $oldd) = @_;
+
+#   &$virtual_server::first_print("$d->{'ip'} ne $oldd->{'ip'}");
+#   &$virtual_server::first_print(Dumper($d));
+#   &$virtual_server::first_print(Dumper($oldd));
+
+
+  local $tmpl = &virtual_server::get_template($d->{'template'});
+  if($d->{'template'}!=$oldd->{'template'}) {
+    local $old_tmpl = &virtual_server::get_template($oldd->{'template'});
+    if($tmpl->{'virtualmin-nginx_enable'} && !$old_tmpl->{'virtualmin-nginx_enable'}) { #in new template nginx are enabled 
+      &$virtual_server::first_print('in new template nginx are enabled');
+      &feature_setup($d);
+      return;
+    } elsif(!$tmpl->{'virtualmin-nginx_enable'} && $old_tmpl->{'virtualmin-nginx_enable'}) { #in new template nginx are disabled
+      &$virtual_server::first_print('in new template nginx are disabled');
+      &feature_disable($d);
+      return;
+    }
+  }
+  if(!$tmpl->{'virtualmin-nginx_enable'}) {
+    return; # return if nginx for this template disabled
+  }
   
-  if ($d->{'dom'} ne $oldd->{'dom'} || $d->{'home'} ne $oldd->{'home'}) {
   
+  if ($d->{'dom'} ne $oldd->{'dom'} || $d->{'home'} ne $oldd->{'home'} || $d->{'dns_ip'} ne $oldd->{'dns_ip'} || $d->{'ip'} ne $oldd->{'ip'} ) {
+    &$virtual_server::first_print('changing config file');
+    
     if($config{'log_dir'} eq "")
     {
       $log_dir = "$d->{'home'}/logs/";
       $old_log_dir = "$oldd->{'home'}/logs/";
     }
-    &$virtual_server::first_print("renaming files from $oldd->{'dom'} to $d->{'dom'}");
+    &$virtual_server::first_print("Changing conf files from $oldd->{'dom'} to $d->{'dom'}");
     
     open(CONFFILE, "<" . $conf_dir . $sites_available_dir . $oldd->{'dom'} . ".conf");
     @conf=<CONFFILE>;
@@ -233,6 +271,15 @@ sub feature_modify
   
     $conf =~ s/(server_name.*\s)$oldd->{'dom'}/$1$d->{'dom'}/gi;
     $conf =~ s/(server_name.*\s)www\.$oldd->{'dom'}/$1www.$d->{'dom'}/gi;
+
+    local $ip_old=$oldd->{'dns_ip'}?$oldd->{'dns_ip'}:$oldd->{'ip'};
+    local $ip_new=$d->{'dns_ip'}?$d->{'dns_ip'}:$d->{'ip'};
+#     &$virtual_server::first_print("$ip_old ne $ip_new");
+    
+    if($ip_old ne $ip_new) {
+      $conf =~ s/listen\s+$ip_old:/listen $ip_new:/gi;
+    }
+
 
     $conf =~ s/(access_log\s+)$old_log_dir$oldd->{'dom'}\.access\.log/$1$log_dir$d->{'dom'}\.access\.log/gi;
     $conf =~ s/(error_log\s+)$old_log_dir$oldd->{'dom'}\.error\.log/$1$log_dir$d->{'dom'}\.error\.log/gi;
@@ -263,6 +310,12 @@ sub feature_restore
 
 sub feature_setup
 {
+  local $tmpl = &virtual_server::get_template($_[0]->{'template'});
+  if(!$tmpl->{'virtualmin-nginx_enable'}) {
+    &$virtual_server::first_print("Nginx site for this template (".$tmpl->{'name'}.") is disabled, skipping creating nginx site. You can enable nginx site creation in Server Templates > Edit Server Template > Plugin options.");
+    return; # return if nginx for this template disabled
+  }
+  
   my ($d) = @_;
   &$virtual_server::first_print("Setting up Nginx site ..");
   
@@ -275,7 +328,7 @@ sub feature_setup
   
   if($d->{'alias'}>0) 
   {
-    &$virtual_server::first_print("feature_setup - Nginx alias mode - exiting");
+    &$virtual_server::first_print("feature_setup: Nginx alias mode - don't create separate conf file.");
     
     return;
   }
@@ -296,7 +349,7 @@ sub feature_setup
     $conf=$config{'nginx_conf_tpl'};
   }
 
-  $conf_v_nginx_ip = $config{'nginx_ip'} ? $config{'nginx_ip'} : $d->{'ip'};
+  $conf_v_nginx_ip = $config{'nginx_ip'} ? ($config{'nginx_ip'} eq 'dns_ip'?$d->{'dns_ip'}:$config{'nginx_ip'}) : $d->{'ip'};
   $conf_v_nginx_port = $config{'nginx_port'} ? $config{'nginx_port'} : '80';
   $conf_v_proxy_ip = $config{'proxy_ip'} ? $config{'proxy_ip'} : '127.0.0.1';
   $conf_v_proxy_port = $config{'proxy_port'} ? $config{'proxy_port'} : '81';
@@ -400,6 +453,31 @@ sub feature_webmin
 {
   
 }
+
+# template_input(&template)
+# Returns HTML for editing per-template options for this plugin
+sub template_input
+{
+local ($tmpl) = @_;
+local $v = $tmpl->{$module_name."_enable"};
+$v = 1 if (!defined($v) && $tmpl->{'default'});
+# print Dumper($tmpl);
+return &ui_table_row($text{'tmpl_nginx-enable'},
+        &ui_radio($module_name."_enable", $v,
+                  [ $tmpl->{'default'} ? ( ) : ( [ '', $text{'default'} ] ),
+                    [ 1, $text{'yes'} ],
+                    [ 0, $text{'no'} ] ]));
+}
+
+# template_parse(&template, &in)
+# Updates the given template object by parsing the inputs generated by
+# template_input. All template fields must start with the module name.
+sub template_parse
+{
+local ($tmpl, $in) = @_;
+$tmpl->{$module_name.'_enable'} = $in->{$module_name.'_enable'};
+}
+
 
 sub reload_nginx
 {
