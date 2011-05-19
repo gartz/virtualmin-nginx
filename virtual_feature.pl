@@ -61,7 +61,7 @@ sub feature_bandwidth
   }
   if(!$file) {
     print STDERR "nginx: can't find log file for domain $d->{'dom'} file $conffile";
-    print Dumper($d);
+#     print Dumper($d);
   }
   open(LOG,$file);
 
@@ -252,6 +252,12 @@ sub feature_modify
     return; # return if nginx for this template disabled
   }
   
+  if($d->{'alias'}) 
+  {
+    &$virtual_server::first_print("feature_modify: Nginx alias mode - don't create separate conf file.");
+    
+    return;
+  }
   
   if ($d->{'dom'} ne $oldd->{'dom'} || $d->{'home'} ne $oldd->{'home'} || $d->{'dns_ip'} ne $oldd->{'dns_ip'} || $d->{'ip'} ne $oldd->{'ip'} ) {
     &$virtual_server::first_print('changing config file');
@@ -349,7 +355,7 @@ sub feature_setup
     $conf=$config{'nginx_conf_tpl'};
   }
 
-  $conf_v_nginx_ip = $config{'nginx_ip'} ? ($config{'nginx_ip'} eq 'dns_ip'?$d->{'dns_ip'}:$config{'nginx_ip'}) : $d->{'ip'};
+  $conf_v_nginx_ip = $config{'nginx_ip'} ? ($config{'nginx_ip'} eq 'dns_ip'?($d->{'dns_ip'}?$d->{'dns_ip'}:$d->{'ip'}):$config{'nginx_ip'}) : $d->{'ip'};
   $conf_v_nginx_port = $config{'nginx_port'} ? $config{'nginx_port'} : '80';
   $conf_v_proxy_ip = $config{'proxy_ip'} ? $config{'proxy_ip'} : '127.0.0.1';
   $conf_v_proxy_port = $config{'proxy_port'} ? $config{'proxy_port'} : '81';
