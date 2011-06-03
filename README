@@ -1,14 +1,14 @@
 Plugin for Virtualmin/Webmin.
 Enable add/remove, disable sites to Nginx config
-Version: 0.1
-Author: Alexey Murz Korepov <murznn@gmail.com>
+Version: 0.3.1
+Author: Matt Lewandowsky <matt@greenviolet.net>
 
-This is the fork of nginx-webmin plugin from https://github.com/vixh/nginx-webmin with adding new features.
+This is a fork of nginx-webmin plugin from https://github.com/vixh/nginx-webmin with new features.
 
 
 * INSTALL *
 
-1. Copy folder with all files to webmin directory(usual /usr/share/webmin), so files must be located in /usr/share/webmin/nginx.
+1. Copy folder with all files to webmin directory (usually /usr/share/webmin), so files must be located in /usr/share/webmin/nginx.
 2. Goto Virtualmin -> System Settings -> Features and Plugins and enable "Nginx Website", check the configuration via "Configure" link. 
 3. Goto Virtualserver -> Enabled features and enable "Setup Nginx website for domain".
 
@@ -19,5 +19,5 @@ For nginx work properly with default module settings, you must do the changes to
 1. Change listen port to 81: Virtualmin -> System Settings -> Server Templates -> Template -> Apache website -> Port number for virtual hosts
 2. Check apache config files (/etc/apache2/*.conf) for the string 
    NameVirtualHost *:81
-   Here must me the asterisk instead of ip-address.
+   Be sure that each instance is using an asterisk instead of an IP address.
 
