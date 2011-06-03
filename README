@@ -1,23 +1,49 @@
-Plugin for Virtualmin/Webmin.
-Enable add/remove, disable sites to Nginx config
+= Nginx Plugin for Virtualmin/Webmin == Enable add/remove/disable sites in
+Nginx configuration === Author: Matt Lewandowsky <matt@greenviolet.net> ===
 Version: 0.3.1
-Author: Matt Lewandowsky <matt@greenviolet.net>
 
-This is a fork of nginx-webmin plugin from https://github.com/vixh/nginx-webmin with new features.
+This is a fork of nginx-webmin plugin from https://github.com/vixh/nginx-webmin
+with new features.
 
+== INSTALL
 
-* INSTALL *
+1. Go to Webmin -> Webmin Configuration -> Webmin Modules.
 
-1. Copy folder with all files to webmin directory (usually /usr/share/webmin), so files must be located in /usr/share/webmin/nginx.
-2. Goto Virtualmin -> System Settings -> Features and Plugins and enable "Nginx Website", check the configuration via "Configure" link. 
-3. Goto Virtualserver -> Enabled features and enable "Setup Nginx website for domain".
+2. Select "From ftp or http URL" and enter
+https://github.com/lewellyn/virtualmin-nginx/lewellyn-virtualmin-nginx-current.wbm.gz
+into the box.
 
+3. Click "Install Module".
 
-* Apache configuration *
+4. Go to Webmin -> Servers -> Nginx Webserver and click "Module Config".
 
-For nginx work properly with default module settings, you must do the changes to apache module:
-1. Change listen port to 81: Virtualmin -> System Settings -> Server Templates -> Template -> Apache website -> Port number for virtual hosts
-2. Check apache config files (/etc/apache2/*.conf) for the string 
-   NameVirtualHost *:81
-   Be sure that each instance is using an asterisk instead of an IP address.
+5. Modify the settings to be appropriate to your local installation.
 
+6. If using Virtualmin:
+
+  1. Goto Virtualmin -> System Settings -> Features and Plugins and enable
+"Nginx Website", check the configuration via "Configure" link. 
+
+  2. Goto Virtualserver -> Enabled features and enable "Setup Nginx website for
+domain".
+
+== Virtualmin Apache configuration
+
+For nginx work properly with default module settings, you must do the changes
+to apache module:
+
+1. Change listen port to 81: Virtualmin -> System Settings -> Server Templates
+-> Template -> Apache website -> Port number for virtual hosts
+
+2. Check apache config files (/etc/apache2/*.conf) for the string
+NameVirtualHost *:81 Be sure that each instance is using an asterisk instead of
+an IP address.
+
+' Do not touch anything after this!
+' Local variables:
+' c-basic-offset: 2
+' tab-width: 2
+' indent-tabs-mode: nil
+' End:
+' vi: set sw=2 ts=2 tw=78 et ai
+' :indentSize=2:tabSize=2:noTabs=true:

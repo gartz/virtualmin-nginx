@@ -4,4 +4,6 @@
 
 This is a fork of nginx-webmin plugin from https://github.com/vixh/nginx-webmin with new features.
 
+*Quick Install:* Install the module from within Webmin using the URL: +https://github.com/lewellyn/virtualmin-nginx/virtualmin-nginx.wbm.gz+
+
 More info and installation guide is in the README file.
