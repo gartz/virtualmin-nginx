@@ -366,12 +366,20 @@ sub feature_setup
 
   $conf =~ s/\t/\n/g;
 
-  $conf =~ s/\$\{DOM\}/$d->{'dom'}/g;
-  $conf =~ s/\$\{IP\}/$conf_v_nginx_ip/g;
-  $conf =~ s/\$\{PORT\}/$conf_v_nginx_port/g;
-  $conf =~ s/\$\{PROXY_IP\}/$conf_v_proxy_ip/g;
-  $conf =~ s/\$\{PROXY_PORT\}/$conf_v_proxy_port/g;
-  $conf =~ s/\$\{HOME\}/$d->{'home'}/g;
+  %conf_vars= (
+    '${DOM}' => $d->{'dom'},
+    '${IP}' => $conf_v_nginx_ip,
+    '${PORT}' => $conf_v_nginx_port,
+    '${PROXY_IP}' => $conf_v_proxy_ip,
+    '${PROXY_PORT}' => $conf_v_proxy_port,
+    '${HOME}' => $d->{'home'},
+    '${PUBLIC_HTML_PATH}' => $d->{'public_html_path'},
+  );
+  
+  while(($key,$value) = each %conf_vars) {
+    $key = quotemeta($key);
+    $conf =~ s/$key/$value/g;
+  }
   
   print($file $conf);
   
