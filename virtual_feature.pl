@@ -47,11 +47,7 @@ sub feature_bandwidth
   }
 
   local $tmpl = &virtual_server::get_template($_[0]->{'template'});
-<<<<<<< HEAD
   if(!$tmpl->{$input_name.'_enable'}) {
-=======
-  if(!$tmpl->{'virtualmin-nginx_enable'}) {
->>>>>>> d26981113a0652198e6f3db08e359955e3029a63
     return; # return if nginx for this template disabled
   }
   
@@ -197,11 +193,7 @@ sub feature_disname
 sub feature_enable
 {
   local $tmpl = &virtual_server::get_template($_[0]->{'template'});
-<<<<<<< HEAD
   if(!$tmpl->{$input_name.'_enable'}) {
-=======
-  if(!$tmpl->{'virtualmin-nginx_enable'}) {
->>>>>>> d26981113a0652198e6f3db08e359955e3029a63
     return; # return if nginx for this template disabled
   }
   
@@ -248,29 +240,17 @@ sub feature_modify
   local $tmpl = &virtual_server::get_template($d->{'template'});
   if($d->{'template'}!=$oldd->{'template'}) {
     local $old_tmpl = &virtual_server::get_template($oldd->{'template'});
-<<<<<<< HEAD
     if($tmpl->{$input_name.'_enable'} && !$old_tmpl->{$input_name.'_enable'}) { #in new template nginx are enabled 
       &$virtual_server::first_print('in new template nginx are enabled');
       &feature_setup($d);
       return;
     } elsif(!$tmpl->{$input_name.'_enable'} && $old_tmpl->{$input_name.'_enable'}) { #in new template nginx are disabled
-=======
-    if($tmpl->{'virtualmin-nginx_enable'} && !$old_tmpl->{'virtualmin-nginx_enable'}) { #in new template nginx are enabled 
-      &$virtual_server::first_print('in new template nginx are enabled');
-      &feature_setup($d);
-      return;
-    } elsif(!$tmpl->{'virtualmin-nginx_enable'} && $old_tmpl->{'virtualmin-nginx_enable'}) { #in new template nginx are disabled
->>>>>>> d26981113a0652198e6f3db08e359955e3029a63
       &$virtual_server::first_print('in new template nginx are disabled');
       &feature_disable($d);
       return;
     }
   }
-<<<<<<< HEAD
   if(!$tmpl->{$input_name.'_enable'}) {
-=======
-  if(!$tmpl->{'virtualmin-nginx_enable'}) {
->>>>>>> d26981113a0652198e6f3db08e359955e3029a63
     return; # return if nginx for this template disabled
   }
   
@@ -338,12 +318,6 @@ sub feature_restore
 
 sub feature_setup
 {
-  local $tmpl = &virtual_server::get_template($_[0]->{'template'});
-  if(!$tmpl->{'virtualmin-nginx_enable'}) {
-    &$virtual_server::first_print("Nginx site for this template (".$tmpl->{'name'}.") is disabled, skipping creating nginx site. You can enable nginx site creation in Server Templates > Edit Server Template > Plugin options.");
-    return; # return if nginx for this template disabled
-  }
-  
   my ($d) = @_;
   &$virtual_server::first_print("Setting up Nginx site ..");
   
@@ -495,19 +469,11 @@ sub feature_webmin
 sub template_input
 {
 local ($tmpl) = @_;
-<<<<<<< HEAD
 local $v = $tmpl->{$input_name."_enable"};
 $v = 1 if (!defined($v) && $tmpl->{'default'});
 # print Dumper($tmpl);
 return &ui_table_row($text{'tmpl_nginx-enable'},
         &ui_radio($input_name."_enable", $v,
-=======
-local $v = $tmpl->{$module_name."_enable"};
-$v = 1 if (!defined($v) && $tmpl->{'default'});
-# print Dumper($tmpl);
-return &ui_table_row($text{'tmpl_nginx-enable'},
-        &ui_radio($module_name."_enable", $v,
->>>>>>> d26981113a0652198e6f3db08e359955e3029a63
                   [ $tmpl->{'default'} ? ( ) : ( [ '', $text{'default'} ] ),
                     [ 1, $text{'yes'} ],
                     [ 0, $text{'no'} ] ]));
@@ -519,12 +485,8 @@ return &ui_table_row($text{'tmpl_nginx-enable'},
 sub template_parse
 {
 local ($tmpl, $in) = @_;
-<<<<<<< HEAD
 # print Dumper($in);
 $tmpl->{$input_name.'_enable'} = $in->{$input_name.'_enable'};
-=======
-$tmpl->{$module_name.'_enable'} = $in->{$module_name.'_enable'};
->>>>>>> d26981113a0652198e6f3db08e359955e3029a63
 }
 
 

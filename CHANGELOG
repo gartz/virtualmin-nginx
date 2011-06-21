@@ -1,9 +1,6 @@
-<<<<<<< HEAD
 ---- Version 0.3.1 from 2011-06-21 ----
  - Fixed bug with module disable/enable always looks from default value
 
-=======
->>>>>>> d26981113a0652198e6f3db08e359955e3029a63
 ---- Version 0.3 from 2011-05-18 ----
  * Added feature to disable nginx for specific templates, 
    see in Server Templates > Edit Server Template > Plugin options
