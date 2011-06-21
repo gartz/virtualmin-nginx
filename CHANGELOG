@@ -1,3 +1,12 @@
+---- Version 0.3.1 from 2011-06-21 ----
+ - Fixed bug with module disable/enable always looks from default value
+
+---- Version 0.3 from 2011-05-18 ----
+ * Added feature to disable nginx for specific templates, 
+   see in Server Templates > Edit Server Template > Plugin options
+ * Added changing ip in conf if changed manually in settings
+ * Added setting ip from DNS A record (not same as apache virtualserver ip)
+
 ---- Version 0.2.1 from 2011-05-17 ----
  * Fixed bug with counting bandwith in aliases
 
@@ -16,4 +25,3 @@
 
 ---- Version 0.0.2 from 2010-08-30 ----
  * Do the fork of https://github.com/vixh/nginx-webmin
-
