@@ -1,6 +1,7 @@
 ---- Version 0.3.1 from 2011-06-21 ----
  - Fixed bug with module disable/enable always looks from default value
  - Added support for custom public_html path in domains
+ - Fixed various bugs when creating, modifying and deleting domain aliases
 
 ---- Version 0.3 from 2011-05-18 ----
  * Added feature to disable nginx for specific templates, 

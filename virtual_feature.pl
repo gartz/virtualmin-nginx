@@ -145,16 +145,19 @@ sub feature_clash
 
 sub feature_delete
 {
-  if($d->{'alias'}>0) 
+  my ($d) = @_;
+  
+  if($d->{'alias'}) 
   {
-    &$virtual_server::first_print("Nginx alias mode - nothing to do");
+    &$virtual_server::first_print("Nginx alias mode");
     
-    &$virtual_server::second_print(".. done");
+    $d_parent = &virtual_server::get_domain($d->{'parent'});
+    
+    feature_delete_alias($d_parent,$d);
     
     return;
   }
   
-  my ($d) = @_;
   &$virtual_server::first_print("Deleting Nginx site ..");
   
   unlink($conf_dir . $sites_enabled_dir . $d->{'dom'} . ".conf");
@@ -258,6 +261,29 @@ sub feature_modify
   {
     &$virtual_server::first_print("feature_modify: Nginx alias mode - don't create separate conf file.");
     
+    $d_parent = &virtual_server::get_domain($d->{'parent'});
+    
+    if($d->{'dom'} eq $oldd->{'dom'}) {
+      &$virtual_server::second_print("feature_modify: alias don't changed, do nothing.");
+      return;
+    }
+    
+  open(CONFFILE, "<" . $conf_dir . $sites_available_dir . $d_parent->{'dom'} . ".conf");
+  @conf=<CONFFILE>;
+  close(CONFFILE);
+  
+  $conf=join("",@conf);
+  
+  $conf =~ s/\s$oldd->{'dom'}(?>[\s;])/$d->{'dom'}/gi;
+  $conf =~ s/\swww\.$oldd->{'dom'}(?>[\s;])/$d->{'dom'}/gi;
+
+  open(CONFFILE, ">" . $conf_dir . $sites_available_dir . $d_parent->{'dom'} . ".conf");
+  print(CONFFILE $conf);
+  close(CONFFILE);
+  
+  reload_nginx();    
+
+
     return;
   }
   
@@ -339,6 +365,22 @@ sub feature_setup
   if($d->{'alias'}>0) 
   {
     &$virtual_server::first_print("feature_setup: Nginx alias mode - don't create separate conf file.");
+
+    $d_parent = &virtual_server::get_domain($d->{'parent'});
+    
+    open(CONFFILE, "<" . $conf_dir . $sites_available_dir . $d_parent->{'dom'} . ".conf");
+    @conf=<CONFFILE>;
+    close(CONFFILE);
+    
+    $conf=join("",@conf);
+    
+    if( $conf =~ m/server_name\s(.*\s)?$d->{'dom'}/mi ) { # find exist record for this alias
+      &$virtual_server::second_print("feature_modify: found record for this alias, not creating new one.");
+    } else {
+      &$virtual_server::first_print("feature_modify: can't find record for this alias, creating new one.");
+      feature_setup_alias($d_parent,$d);
+      reload_nginx();    
+    }
     
     return;
   }
@@ -407,7 +449,7 @@ sub feature_setup_alias
   
   $conf=join("",@conf);
   
-  $conf =~ s/(server_name\s.*$d->{'dom'} www\.$d->{'dom'})/$1 $alias->{'dom'} www\.$alias->{'dom'}/gi;
+  $conf =~ s/(server_name(\s.*?)?\s$d->{'dom'} www\.$d->{'dom'})/$1 $alias->{'dom'} www\.$alias->{'dom'}/gi;
 
   open(CONFFILE, ">" . $conf_dir . $sites_available_dir . $d->{'dom'} . ".conf");
   print(CONFFILE $conf);
@@ -425,6 +467,7 @@ sub feature_setup_alias
 sub feature_delete_alias
 {
   local ($d, $alias) = @_;
+  
   &$virtual_server::first_print("Deleting Nginx alias site ..");
 
   open(CONFFILE, "<" . $conf_dir . $sites_available_dir . $d->{'dom'} . ".conf");
@@ -433,8 +476,8 @@ sub feature_delete_alias
   
   $conf=join("",@conf);
   
-  $conf =~ s/(server_name\s.*)$alias->{'dom'}/$1/gi;
-  $conf =~ s/(server_name\s.*)www\.$alias->{'dom'}/$1/gi;
+  $conf =~ s/(server_name(\s.*?)?)\s$alias->{'dom'}(?=[\s;])/$1/gmi;
+  $conf =~ s/(server_name(\s.*?)?)\swww\.$alias->{'dom'}(?=[\s;])/$1/gmi;
 
   open(CONFFILE, ">" . $conf_dir . $sites_available_dir . $d->{'dom'} . ".conf");
   print(CONFFILE $conf);
@@ -443,7 +486,6 @@ sub feature_delete_alias
   reload_nginx();
   
   &$virtual_server::second_print(".. done");
-
 
 }
 
