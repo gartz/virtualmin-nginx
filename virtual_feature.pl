@@ -1,4 +1,6 @@
 do 'virtualmin-nginx-lib.pl';
+$input_name = $module_name;
+$input_name =~ s/[^A-Za-z0-9]/_/g;
 
 use File::Copy;
 use Data::Dumper;
@@ -45,7 +47,7 @@ sub feature_bandwidth
   }
 
   local $tmpl = &virtual_server::get_template($_[0]->{'template'});
-  if(!$tmpl->{'virtualmin-nginx_enable'}) {
+  if(!$tmpl->{$input_name.'_enable'}) {
     return; # return if nginx for this template disabled
   }
   
@@ -143,16 +145,19 @@ sub feature_clash
 
 sub feature_delete
 {
-  if($d->{'alias'}>0) 
+  my ($d) = @_;
+  
+  if($d->{'alias'}) 
   {
-    &$virtual_server::first_print("Nginx alias mode - nothing to do");
+    &$virtual_server::first_print("Nginx alias mode");
     
-    &$virtual_server::second_print(".. done");
+    $d_parent = &virtual_server::get_domain($d->{'parent'});
+    
+    feature_delete_alias($d_parent,$d);
     
     return;
   }
   
-  my ($d) = @_;
   &$virtual_server::first_print("Deleting Nginx site ..");
   
   unlink($conf_dir . $sites_enabled_dir . $d->{'dom'} . ".conf");
@@ -191,7 +196,7 @@ sub feature_disname
 sub feature_enable
 {
   local $tmpl = &virtual_server::get_template($_[0]->{'template'});
-  if(!$tmpl->{'virtualmin-nginx_enable'}) {
+  if(!$tmpl->{$input_name.'_enable'}) {
     return; # return if nginx for this template disabled
   }
   
@@ -238,17 +243,17 @@ sub feature_modify
   local $tmpl = &virtual_server::get_template($d->{'template'});
   if($d->{'template'}!=$oldd->{'template'}) {
     local $old_tmpl = &virtual_server::get_template($oldd->{'template'});
-    if($tmpl->{'virtualmin-nginx_enable'} && !$old_tmpl->{'virtualmin-nginx_enable'}) { #in new template nginx are enabled 
+    if($tmpl->{$input_name.'_enable'} && !$old_tmpl->{$input_name.'_enable'}) { #in new template nginx are enabled 
       &$virtual_server::first_print('in new template nginx are enabled');
       &feature_setup($d);
       return;
-    } elsif(!$tmpl->{'virtualmin-nginx_enable'} && $old_tmpl->{'virtualmin-nginx_enable'}) { #in new template nginx are disabled
+    } elsif(!$tmpl->{$input_name.'_enable'} && $old_tmpl->{$input_name.'_enable'}) { #in new template nginx are disabled
       &$virtual_server::first_print('in new template nginx are disabled');
       &feature_disable($d);
       return;
     }
   }
-  if(!$tmpl->{'virtualmin-nginx_enable'}) {
+  if(!$tmpl->{$input_name.'_enable'}) {
     return; # return if nginx for this template disabled
   }
   
@@ -256,6 +261,29 @@ sub feature_modify
   {
     &$virtual_server::first_print("feature_modify: Nginx alias mode - don't create separate conf file.");
     
+    $d_parent = &virtual_server::get_domain($d->{'parent'});
+    
+    if($d->{'dom'} eq $oldd->{'dom'}) {
+      &$virtual_server::second_print("feature_modify: alias don't changed, do nothing.");
+      return;
+    }
+    
+  open(CONFFILE, "<" . $conf_dir . $sites_available_dir . $d_parent->{'dom'} . ".conf");
+  @conf=<CONFFILE>;
+  close(CONFFILE);
+  
+  $conf=join("",@conf);
+  
+  $conf =~ s/\s$oldd->{'dom'}(?>[\s;])/$d->{'dom'}/gi;
+  $conf =~ s/\swww\.$oldd->{'dom'}(?>[\s;])/$d->{'dom'}/gi;
+
+  open(CONFFILE, ">" . $conf_dir . $sites_available_dir . $d_parent->{'dom'} . ".conf");
+  print(CONFFILE $conf);
+  close(CONFFILE);
+  
+  reload_nginx();    
+
+
     return;
   }
   
@@ -316,14 +344,16 @@ sub feature_restore
 
 sub feature_setup
 {
-  local $tmpl = &virtual_server::get_template($_[0]->{'template'});
-  if(!$tmpl->{'virtualmin-nginx_enable'}) {
+  my ($d) = @_;
+  &$virtual_server::first_print("Setting up Nginx site ..");
+  
+  local $tmpl = &virtual_server::get_template($d->{'template'});
+#   print Dumper($tmpl);
+  if(!$tmpl->{$input_name.'_enable'}) {
     &$virtual_server::first_print("Nginx site for this template (".$tmpl->{'name'}.") is disabled, skipping creating nginx site. You can enable nginx site creation in Server Templates > Edit Server Template > Plugin options.");
     return; # return if nginx for this template disabled
   }
   
-  my ($d) = @_;
-  &$virtual_server::first_print("Setting up Nginx site ..");
   
   my $file;
   
@@ -335,6 +365,22 @@ sub feature_setup
   if($d->{'alias'}>0) 
   {
     &$virtual_server::first_print("feature_setup: Nginx alias mode - don't create separate conf file.");
+
+    $d_parent = &virtual_server::get_domain($d->{'parent'});
+    
+    open(CONFFILE, "<" . $conf_dir . $sites_available_dir . $d_parent->{'dom'} . ".conf");
+    @conf=<CONFFILE>;
+    close(CONFFILE);
+    
+    $conf=join("",@conf);
+    
+    if( $conf =~ m/server_name\s(.*\s)?$d->{'dom'}/mi ) { # find exist record for this alias
+      &$virtual_server::second_print("feature_modify: found record for this alias, not creating new one.");
+    } else {
+      &$virtual_server::first_print("feature_modify: can't find record for this alias, creating new one.");
+      feature_setup_alias($d_parent,$d);
+      reload_nginx();    
+    }
     
     return;
   }
@@ -362,12 +408,20 @@ sub feature_setup
 
   $conf =~ s/\t/\n/g;
 
-  $conf =~ s/\$\{DOM\}/$d->{'dom'}/g;
-  $conf =~ s/\$\{IP\}/$conf_v_nginx_ip/g;
-  $conf =~ s/\$\{PORT\}/$conf_v_nginx_port/g;
-  $conf =~ s/\$\{PROXY_IP\}/$conf_v_proxy_ip/g;
-  $conf =~ s/\$\{PROXY_PORT\}/$conf_v_proxy_port/g;
-  $conf =~ s/\$\{HOME\}/$d->{'home'}/g;
+  %conf_vars= (
+    '${DOM}' => $d->{'dom'},
+    '${IP}' => $conf_v_nginx_ip,
+    '${PORT}' => $conf_v_nginx_port,
+    '${PROXY_IP}' => $conf_v_proxy_ip,
+    '${PROXY_PORT}' => $conf_v_proxy_port,
+    '${HOME}' => $d->{'home'},
+    '${PUBLIC_HTML_PATH}' => $d->{'public_html_path'},
+  );
+  
+  while(($key,$value) = each %conf_vars) {
+    $key = quotemeta($key);
+    $conf =~ s/$key/$value/g;
+  }
   
   print($file $conf);
   
@@ -395,7 +449,7 @@ sub feature_setup_alias
   
   $conf=join("",@conf);
   
-  $conf =~ s/(server_name\s.*$d->{'dom'} www\.$d->{'dom'})/$1 $alias->{'dom'} www\.$alias->{'dom'}/gi;
+  $conf =~ s/(server_name(\s.*?)?\s$d->{'dom'} www\.$d->{'dom'})/$1 $alias->{'dom'} www\.$alias->{'dom'}/gi;
 
   open(CONFFILE, ">" . $conf_dir . $sites_available_dir . $d->{'dom'} . ".conf");
   print(CONFFILE $conf);
@@ -413,6 +467,7 @@ sub feature_setup_alias
 sub feature_delete_alias
 {
   local ($d, $alias) = @_;
+  
   &$virtual_server::first_print("Deleting Nginx alias site ..");
 
   open(CONFFILE, "<" . $conf_dir . $sites_available_dir . $d->{'dom'} . ".conf");
@@ -421,8 +476,8 @@ sub feature_delete_alias
   
   $conf=join("",@conf);
   
-  $conf =~ s/(server_name\s.*)$alias->{'dom'}/$1/gi;
-  $conf =~ s/(server_name\s.*)www\.$alias->{'dom'}/$1/gi;
+  $conf =~ s/(server_name(\s.*?)?)\s$alias->{'dom'}(?=[\s;])/$1/gmi;
+  $conf =~ s/(server_name(\s.*?)?)\swww\.$alias->{'dom'}(?=[\s;])/$1/gmi;
 
   open(CONFFILE, ">" . $conf_dir . $sites_available_dir . $d->{'dom'} . ".conf");
   print(CONFFILE $conf);
@@ -431,7 +486,6 @@ sub feature_delete_alias
   reload_nginx();
   
   &$virtual_server::second_print(".. done");
-
 
 }
 
@@ -465,11 +519,11 @@ sub feature_webmin
 sub template_input
 {
 local ($tmpl) = @_;
-local $v = $tmpl->{$module_name."_enable"};
+local $v = $tmpl->{$input_name."_enable"};
 $v = 1 if (!defined($v) && $tmpl->{'default'});
 # print Dumper($tmpl);
 return &ui_table_row($text{'tmpl_nginx-enable'},
-        &ui_radio($module_name."_enable", $v,
+        &ui_radio($input_name."_enable", $v,
                   [ $tmpl->{'default'} ? ( ) : ( [ '', $text{'default'} ] ),
                     [ 1, $text{'yes'} ],
                     [ 0, $text{'no'} ] ]));
@@ -481,7 +535,8 @@ return &ui_table_row($text{'tmpl_nginx-enable'},
 sub template_parse
 {
 local ($tmpl, $in) = @_;
-$tmpl->{$module_name.'_enable'} = $in->{$module_name.'_enable'};
+# print Dumper($in);
+$tmpl->{$input_name.'_enable'} = $in->{$input_name.'_enable'};
 }
 
 
