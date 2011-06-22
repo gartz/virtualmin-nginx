@@ -11,7 +11,7 @@ with new features.
 1. Go to Webmin -> Webmin Configuration -> Webmin Modules.
 
 2. Select "From ftp or http URL" and enter
-https://github.com/lewellyn/virtualmin-nginx/lewellyn-virtualmin-nginx-current.wbm.gz
+https://github.com/downloads/lewellyn/virtualmin-nginx/lewellyn-virtualmin-nginx-current.wbm.gz
 into the box.
 
 3. Click "Install Module".
