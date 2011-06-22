@@ -1,6 +1,7 @@
-= Nginx Plugin for Virtualmin/Webmin == Enable add/remove/disable sites in
-Nginx configuration === Author: Matt Lewandowsky <matt@greenviolet.net> ===
-Version: 0.3.1
+= Nginx Plugin for Virtualmin/Webmin
+== Enable add/remove/disable sites in Nginx configuration
+=== Author: Matt Lewandowsky <matt@greenviolet.net>
+=== Version: 0.3.2
 
 This is a fork of nginx-webmin plugin from https://github.com/vixh/nginx-webmin
 with new features.
@@ -47,3 +48,4 @@ an IP address.
 ' End:
 ' vi: set sw=2 ts=2 tw=78 et ai
 ' :indentSize=2:tabSize=2:noTabs=true:
+
