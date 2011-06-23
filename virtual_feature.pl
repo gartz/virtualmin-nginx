@@ -46,6 +46,10 @@ sub feature_bandwidth
     return; # return if here is alias of domain
   }
 
+  if($d->{'virtualmin-nginx'} ne 0) {
+    return; # return if nginx is not enabled
+  }
+
   local $tmpl = &virtual_server::get_template($_[0]->{'template'});
   if(!$tmpl->{$input_name.'_enable'}) {
     return; # return if nginx for this template disabled
