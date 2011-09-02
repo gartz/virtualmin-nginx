@@ -60,13 +60,13 @@ sub feature_bandwidth
   open(FILE,$conffile);
 
   while($line=<FILE>) {
-    if($line =~ /^[^#]*access_log\s([^;]+)[\s;]/) {
+    if($line =~ /^[^#]*access_log\s([^;^\s]+)[\s;]/) {
       $file = $1;
       break;
     }
   }
   if(!$file) {
-    print STDERR "nginx: can't find log file for domain $d->{'dom'} file $conffile";
+    print STDERR "nginx: can't find log file $file for domain $d->{'dom'} file $conffile";
 #     print Dumper($d);
   }
   open(LOG,$file);
