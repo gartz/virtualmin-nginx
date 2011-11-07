@@ -420,6 +420,7 @@ sub feature_setup
     '${PROXY_PORT}' => $conf_v_proxy_port,
     '${HOME}' => $d->{'home'},
     '${PUBLIC_HTML_PATH}' => $d->{'public_html_path'},
+    '${USER}' => $d->{'user'},
   );
   
   while(($key,$value) = each %conf_vars) {
