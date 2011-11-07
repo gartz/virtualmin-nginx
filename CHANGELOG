@@ -1,8 +1,19 @@
+<<<<<<< HEAD
+---- Version 0.3.1.1 from 2011-06-22 ----
+ * Consolidate README files
+ * Start on showing vhosts
+
 ---- Version 0.3.1 from 2011-06-21 ----
  - Fixed bug with module disable/enable always looks from default value
  - Added support for custom public_html path in domains
  - Fixed various bugs when creating, modifying and deleting domain aliases
  - Fixed warning "nginx: can't find log file for domain" if nginx for domain is not enabled
+
+---- Version 0.3.1 from 2011-06-02 ----
+ * Update documentation for clarity/typos
+ * Update documentation to update attribution
+ * Removed OS restriction https://github.com/lewellyn/virtualmin-nginx/issues/2
+ * Added icons https://github.com/lewellyn/virtualmin-nginx/issues/1
 
 ---- Version 0.3 from 2011-05-18 ----
  * Added feature to disable nginx for specific templates, 

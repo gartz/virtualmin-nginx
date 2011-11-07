@@ -1,12 +1,12 @@
-conf_dir=Config directory,3,Default (/etc/nginx/)
-sites_available_dir=sites-available subdirectory,3,Default (sites-available/)
-sites_enabled_dir=sites-enabled subdirectory,3,Default (sites-enabled/)
+conf_dir=Config directory,3,Default (/etc/nginx)
+sites_available_dir=sites-available subdirectory,3,Default (sites-available)
+sites_enabled_dir=sites-enabled subdirectory,3,Default (sites-enabled)
 nginx_pid=pid file,3,Default (/var/run/nginx.pid)
 nginx_path=Full path to the nginx executable,0
 nginx_ip=nginx ip-address,10,-Default (Same as virtualserver IP),dns_ip-Same as domain DNS A record,Custom
 nginx_port=nginx port to listen on,3,Default (80),asd
 proxy_ip=Proxy IP-address,3,Default (127.0.0.1)
 proxy_port=Proxy HTTP port,3,Default (81)
-log_dir=Log directory,3,Default ({HOME}/logs/)
+log_dir=Log directory,3,Default ({HOME}/logs)
 public_html_perm=public_html directory permissions,3,Default (0755)
 nginx_conf_tpl=Config template (leave empty for use default template),9,40,5,\t

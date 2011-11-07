@@ -1,4 +1,3 @@
 desc=Nginx Webserver
-version=0.3
-os_support=*-linux
+version=0.3.1
 category=servers
