@@ -28,6 +28,14 @@ into the box.
   2. Goto Virtualserver -> Enabled features and enable "Setup Nginx website for
 domain".
 
+== MANUAL INSTALL
+
+The permissions must be _root_.
+
+1. Go to `/usr/libexec/webmin`
+
+2. Type `git clone git://github.com/gartz/virtualmin-nginx.git nginx`
+
 == Virtualmin Apache configuration
 
 For nginx work properly with default module settings, you must do the changes
