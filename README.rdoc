@@ -1,3 +1,8 @@
+= ATENTION
+
+Virtualmin has added official support for nginx: http://www.virtualmin.com/documentation/web/nginx
+
+
 = Nginx Plugin for Virtualmin/Webmin
 == Enable add/remove/disable sites in Nginx configuration
 === Author: Matt Lewandowsky <matt@greenviolet.net>
